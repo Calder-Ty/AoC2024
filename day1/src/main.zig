@@ -1,24 +1,53 @@
 const std = @import("std");
+const fs = std.fs;
+const fmt = std.fmt;
+const sort = std.sort;
+const Allocator = std.mem.Allocator;
+
+const max_read=15*1024;
+
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+    const rawdata = try loadData(allocator, "data/prod.txt");
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    var iter = std.mem.tokenizeAny(u8, rawdata, "\n ");
+    // input is C, C \n
+    var list1 = std.ArrayList(usize).init(allocator);
+    var list2 = std.ArrayList(usize).init(allocator);
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    var i: usize = 0;
+    while (iter.next())|id| : (i += 1)  {
+        if (i % 2 == 0) {
+            try list1.append(try fmt.parseInt(usize, id, 10));
+        } else {
+            try list2.append(try fmt.parseInt(usize, id, 10));
+        }
+    }
+    sort.pdq(usize, list1.items, .{}, lessThan);
+    sort.pdq(usize, list2.items, .{}, lessThan);
 
-    try bw.flush(); // don't forget to flush!
+    // compute distances
+    var sum: usize = 0;
+    for (list1.items, list2.items )|a, b| {
+        if (a > b) {
+            sum += a - b;
+        } else {
+            sum += b - a;
+        }
+    }
+
+    std.debug.print("Total Distance is {d}", .{sum});
 }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+/// Load the Data from path
+fn loadData(allocator:Allocator, path: []const u8) ![]u8 {
+    const fd = try fs.cwd().openFile(path, .{});
+    return try fd.readToEndAlloc(allocator, max_read);
+}
+
+fn lessThan( _: @TypeOf(.{}), a: usize, b:usize) bool {
+    return a < b;
 }
