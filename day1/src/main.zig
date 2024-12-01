@@ -16,30 +16,31 @@ pub fn main() !void {
     var iter = std.mem.tokenizeAny(u8, rawdata, "\n ");
     // input is C, C \n
     var list1 = std.ArrayList(usize).init(allocator);
-    var list2 = std.ArrayList(usize).init(allocator);
+    var counter= std.AutoHashMap(usize, usize).init(allocator);
 
     var i: usize = 0;
     while (iter.next())|id| : (i += 1)  {
         if (i % 2 == 0) {
             try list1.append(try fmt.parseInt(usize, id, 10));
         } else {
-            try list2.append(try fmt.parseInt(usize, id, 10));
+            const entry = try counter.getOrPut(try fmt.parseInt(usize, id, 10));
+            if (entry.found_existing) {
+                entry.value_ptr.* += 1;
+            } else {
+                entry.value_ptr.* = 1;
+            }
         }
     }
     sort.pdq(usize, list1.items, .{}, lessThan);
-    sort.pdq(usize, list2.items, .{}, lessThan);
 
-    // compute distances
+    // compute Similarity
     var sum: usize = 0;
-    for (list1.items, list2.items )|a, b| {
-        if (a > b) {
-            sum += a - b;
-        } else {
-            sum += b - a;
-        }
+    for (list1.items)|a| {
+        const mult = counter.get(a) orelse 0;
+        sum += mult * a;
     }
 
-    std.debug.print("Total Distance is {d}", .{sum});
+    std.debug.print("Similarit Metric is {d}", .{sum});
 }
 
 /// Load the Data from path
