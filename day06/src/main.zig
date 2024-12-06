@@ -19,20 +19,24 @@ const Directions = packed struct {
     east: bool,
     south: bool,
     west: bool,
+
+    fn empty() Directions {
+        return .{ .north = false, .east = false, .south = false, .west = false };
+    }
 };
 
-const VisitedRow = std.bit_set.StaticBitSet(size);
+const VisitedRow = [size]?StepData;
 const Visited = [size]VisitedRow;
 var map: [size][]const u8 = undefined;
 
 pub fn main() !void {
     const data = try loadData(global_alloc, "data/prod.txt");
-    var visited: Visited = [1]VisitedRow{VisitedRow.initEmpty()} ** size;
+    var visited: Visited = [_]VisitedRow{[_]?StepData{null} ** size} ** size;
 
     var iter = std.mem.tokenizeScalar(u8, data, '\n');
 
     var row_num: u8 = 0;
-    var guard = Guard{.pos=undefined, .direction='.'};
+    var guard = Guard{ .pos = undefined, .direction = '.' };
     while (iter.next()) |map_row| : (row_num += 1) {
         map[row_num] = map_row;
         if (std.mem.indexOfAny(u8, map_row, "^><v")) |col| {
@@ -45,18 +49,35 @@ pub fn main() !void {
     walkRoute(guard, row_num, &visited);
     var sum: usize = 0;
     for (visited) |row_line| {
-        sum += row_line.count();
+        sum += count(row_line);
     }
 
     std.debug.print("Traveled {d} spaces\n", .{sum});
 }
 
+fn count(row: VisitedRow) usize {
+    var sum:usize = 0;
+    for (row) |v| {
+        if (v != null) {
+            sum += 1;
+        }
+    }
+    return sum;
+}
 
 fn walkRoute(grd: Guard, max_rows: usize, visited: *Visited) void {
     var guard = grd;
     // Let's walk
     while (guard.pos.col < max_rows and guard.pos.col >= 0 and guard.pos.row < max_rows and guard.pos.row >= 0) {
-        visited[guard.pos.col].set(guard.pos.row);
+        var step: StepData = if (visited[guard.pos.col][guard.pos.row] != null) visited[guard.pos.col][guard.pos.row].? else .{ .directions = Directions.empty() };
+        switch (guard.direction) {
+            '^' => step.directions.north = true,
+            '>' => step.directions.east = true,
+            'v' => step.directions.south = true,
+            '<' => step.directions.west = true,
+            else => unreachable,
+        }
+        visited[guard.pos.col][guard.pos.row] = step;
         switch (guard.direction) {
             '^' => {
                 if (guard.pos.row == 0) {
@@ -122,7 +143,7 @@ const Guard = struct {
             '>' => self.direction = 'v',
             'v' => self.direction = '<',
             '<' => self.direction = '^',
-            else => unreachable
+            else => unreachable,
         }
     }
 };
