@@ -1,3 +1,4 @@
+// #! https://adventofcode.com/2024/day/6
 const std = @import("std");
 const fs = std.fs;
 const fmt = std.fmt;
@@ -51,12 +52,11 @@ pub fn main() !void {
     for (visited) |row_line| {
         sum += count(row_line);
     }
-
     std.debug.print("Traveled {d} spaces\n", .{sum});
 }
 
 fn count(row: VisitedRow) usize {
-    var sum:usize = 0;
+    var sum: usize = 0;
     for (row) |v| {
         if (v != null) {
             sum += 1;
@@ -80,48 +80,28 @@ fn walkRoute(grd: Guard, max_rows: usize, visited: *Visited) void {
         visited[guard.pos.col][guard.pos.row] = step;
         switch (guard.direction) {
             '^' => {
-                if (guard.pos.row == 0) {
-                    break;
-                }
+                if (guard.pos.row == 0) break;
                 if (map[guard.pos.row - 1][guard.pos.col] == '#') {
                     guard.turn();
-                    continue;
-                } else {
-                    guard.pos.row -= 1;
-                }
+                } else guard.pos.row -= 1;
             },
             '>' => {
-                if (guard.pos.col == max_rows - 1) {
-                    break;
-                }
+                if (guard.pos.col == max_rows - 1) break;
                 if (map[guard.pos.row][guard.pos.col + 1] == '#') {
                     guard.turn();
-                    continue;
-                } else {
-                    guard.pos.col += 1;
-                }
+                } else guard.pos.col += 1;
             },
             'v' => {
-                if (guard.pos.row == max_rows - 1) {
-                    break;
-                }
+                if (guard.pos.row == max_rows - 1)  break;
                 if (map[guard.pos.row + 1][guard.pos.col] == '#') {
                     guard.turn();
-                    continue;
-                } else {
-                    guard.pos.row += 1;
-                }
+                } else guard.pos.row += 1;
             },
             '<' => {
-                if (guard.pos.col == 0) {
-                    break;
-                }
+                if (guard.pos.col == 0) break;
                 if (map[guard.pos.row][guard.pos.col - 1] == '#') {
                     guard.turn();
-                    continue;
-                } else {
-                    guard.pos.col -= 1;
-                }
+                } else guard.pos.col -= 1;
             },
             else => {},
         }
