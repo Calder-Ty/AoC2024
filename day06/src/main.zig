@@ -15,7 +15,6 @@ const global_alloc = arena.allocator();
 const max_read = 21 * 1024;
 
 const size = 130;
-var steps: usize = 0;
 
 const Directions = enum {
     north,
@@ -100,7 +99,7 @@ fn walkWithObstacles(grd: Guard, max_rows: usize, visited: *Visited) void {
     var guard = grd;
     while (guard.pos.col < max_rows and guard.pos.col >= 0 and guard.pos.row < max_rows and guard.pos.row >= 0) {
         // First check if placing a block will get a loop
-        _ = findLoop(guard, max_rows, visited);
+        findLoop(guard, max_rows, visited);
         var step: StepData = visited[guard.pos.row][guard.pos.col];
         if (step.contains(guard.getDirection())) break;
         step.setPresent(guard.getDirection(), true);
@@ -160,36 +159,35 @@ fn isExiting(guard: Guard, max_rows: usize) bool {
 }
 
 // Counts the number of loops (part2)
-fn findLoop(grd: Guard, max_rows: usize, visited: *Visited) bool {
-    var guard: Guard = grd;
+fn findLoop(guard: Guard, max_rows: usize, visited: *Visited) void {
 
     // Don't block if the guard is leaving the map, or there is already an obstacle
     if (isExiting(guard, max_rows)) {
-        return false;
+        return;
     }
     const block: Coord = switch (guard.direction) {
         '^' => blk: {
             if (map[guard.pos.row - 1][guard.pos.col] == '#') {
-                return false;
+                return;
             }
             break :blk .{ .row = guard.pos.row - 1, .col = guard.pos.col };
 
         },
         '>' => blk: {
             if (map[guard.pos.row][guard.pos.col + 1] == '#') {
-                return false;
+                return;
             }
             break :blk .{ .row = guard.pos.row, .col = guard.pos.col + 1 };
         },
         'v' => blk: {
             if (map[guard.pos.row + 1][guard.pos.col] == '#') {
-                return false;
+                return;
             }
             break :blk .{ .row = guard.pos.row + 1, .col = guard.pos.col };
         },
         '<' => blk: {
             if (map[guard.pos.row][guard.pos.col - 1] == '#') {
-                return false;
+                return;
             }
             break :blk .{ .row = guard.pos.row, .col = guard.pos.col - 1 };
         },
@@ -202,16 +200,12 @@ fn findLoop(grd: Guard, max_rows: usize, visited: *Visited) bool {
 
     var hypothetical: Visited = undefined;
     @memcpy(&hypothetical, visited);
-    hypothetical[guard.pos.row][guard.pos.col].setPresent(guard.getDirection(), true);
-    guard.turn();
 
     // Do the walk...
     const looped = walkRoute(guard, max_rows, &hypothetical);
     if (looped) {
         obstaclePositions[block.row].set(block.col);
     }
-    steps += 1;
-    return false;
 }
 
 const Coord = struct {
