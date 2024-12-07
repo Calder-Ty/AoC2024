@@ -54,7 +54,7 @@ pub fn main() !void {
     }
 
     // Let's walk (Part 1)
-    walkWithObstacles(guard, row_num, &visited);
+    _ = walkWithObstacles(guard, row_num, &visited);
     var sum: usize = 0;
     for (visited) |row_line| {
         sum += count(row_line);
@@ -193,6 +193,11 @@ fn findLoop(guard: Guard, max_rows: usize, visited: *Visited) void {
         },
         else => unreachable,
     };
+    // If we see that we've traveled this route before, we cannot put an obstacle here,
+    // as then we never could have travled on this route before in the first place.
+    if (visited[block.row][block.col].count() > 0) {
+        return;
+    }
 
     const temp = map[block.row][block.col];
     map[block.row][block.col] = '#';
