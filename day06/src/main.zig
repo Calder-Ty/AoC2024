@@ -98,7 +98,6 @@ fn walkRoute(grd: Guard, max_rows: usize, visited: *Visited) bool {
 
 fn walkWithObstacles(grd: Guard, max_rows: usize, visited: *Visited) void {
     var guard = grd;
-
     while (guard.pos.col < max_rows and guard.pos.col >= 0 and guard.pos.row < max_rows and guard.pos.row >= 0) {
         // First check if placing a block will get a loop
         _ = findLoop(guard, max_rows, visited);
@@ -148,16 +147,28 @@ fn mvGuard(guard: *Guard, max_rows: usize) bool {
     return ret;
 }
 
+fn isExiting(guard: Guard, max_rows: usize) bool {
+    return (
+        guard.getDirection() == .north and guard.pos.row == 0
+    ) or (
+        guard.getDirection() == .south and guard.pos.row == max_rows
+    ) or (
+        guard.getDirection() == .east and guard.pos.col == max_rows
+    ) or (
+        guard.getDirection() == .west and guard.pos.col == 0
+    );
+}
+
 // Counts the number of loops (part2)
 fn findLoop(grd: Guard, max_rows: usize, visited: *Visited) bool {
     var guard: Guard = grd;
 
-    // Don't block if the guard is on the edge, or there is already an obstacle
+    // Don't block if the guard is leaving the map, or there is already an obstacle
+    if (isExiting(guard, max_rows)) {
+        return false;
+    }
     const block: Coord = switch (guard.direction) {
         '^' => blk: {
-            if (guard.pos.row == 0) {
-                return false;
-            }
             if (map[guard.pos.row - 1][guard.pos.col] == '#') {
                 return false;
             }
@@ -165,27 +176,18 @@ fn findLoop(grd: Guard, max_rows: usize, visited: *Visited) bool {
 
         },
         '>' => blk: {
-            if (guard.pos.col == max_rows) {
-                return false;
-            }
             if (map[guard.pos.row][guard.pos.col + 1] == '#') {
                 return false;
             }
             break :blk .{ .row = guard.pos.row, .col = guard.pos.col + 1 };
         },
         'v' => blk: {
-            if (guard.pos.row == max_rows) {
-                return false;
-            }
             if (map[guard.pos.row + 1][guard.pos.col] == '#') {
                 return false;
             }
             break :blk .{ .row = guard.pos.row + 1, .col = guard.pos.col };
         },
         '<' => blk: {
-            if (guard.pos.col == 0) {
-                return false;
-            }
             if (map[guard.pos.row][guard.pos.col - 1] == '#') {
                 return false;
             }
