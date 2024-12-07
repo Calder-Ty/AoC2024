@@ -17,23 +17,17 @@ const max_read = 21 * 1024;
 const size = 130;
 var steps: usize = 0;
 
-const StepData = struct {
-    // Keep track of the direction traveled when visited
-    directions: Directions,
+const Directions = enum {
+    north,
+    east,
+    south,
+    west,
 };
 
-const Directions = packed struct {
-    north: bool = false,
-    east: bool = false,
-    south: bool = false,
-    west: bool = false,
+const StepData = std.EnumSet(Directions);
 
-    fn empty() Directions {
-        return .{};
-    }
-};
 
-const VisitedRow = [size]?StepData;
+const VisitedRow = [size]StepData;
 const Visited = [size]VisitedRow;
 var map: [size][]u8 = undefined;
 
@@ -47,7 +41,7 @@ pub fn main() !void {
         row.* = try global_alloc.alloc(u8, size);
     }
     const data = try loadData(global_alloc, "data/prod.txt");
-    var visited: Visited = [_]VisitedRow{[_]?StepData{null} ** size} ** size;
+    var visited: Visited = [_]VisitedRow{[_]StepData{StepData.initEmpty()} ** size} ** size;
 
     var iter = std.mem.tokenizeScalar(u8, data, '\n');
 
@@ -79,7 +73,7 @@ pub fn main() !void {
 fn count(row: VisitedRow) usize {
     var sum: usize = 0;
     for (row) |v| {
-        if (v != null) {
+        if (v.count() > 0) {
             sum += 1;
         }
     }
@@ -97,20 +91,13 @@ fn walkRoute(grd: Guard, max_rows: usize, visited: *Visited) !usize {
             total_loops += 1;
         }
 
-        var step: StepData = visited[guard.pos.row][guard.pos.col] orelse .{ .directions = Directions.empty() };
-        switch (guard.direction) {
-            '^' => step.directions.north = true,
-            '>' => step.directions.east = true,
-            'v' => step.directions.south = true,
-            '<' => step.directions.west = true,
-            else => unreachable,
-        }
+        var step: StepData = visited[guard.pos.row][guard.pos.col];
+        step.setPresent(guard.getDirection(), true);
         visited[guard.pos.row][guard.pos.col] = step;
         if (!mvGuard(&guard, max_rows)) {
             break;
         }
     }
-    try drawpath(visited, 9999, null, guard);
     return total_loops;
 }
 
@@ -199,26 +186,19 @@ fn findLoop(grd: Guard, max_rows: usize, visited: *Visited) !bool {
     defer map[block.row][block.col] = temp;
     var hypothetical: Visited = undefined;
     @memcpy(&hypothetical, visited);
-    hypothetical[guard.pos.row][guard.pos.col] = .{ .directions = guard.getDirection() };
+    hypothetical[guard.pos.row][guard.pos.col].setPresent(guard.getDirection(), true);
     guard.turn();
 
     // Redo the walk... But at each step, we need to check for loops!
     walk: while (guard.pos.col < max_rows and guard.pos.col >= 0 and guard.pos.row < max_rows and guard.pos.row >= 0) {
         // Have we been here before:
-        var step: StepData = hypothetical[guard.pos.row][guard.pos.col] orelse .{ .directions = Directions.empty() };
-        if ((@as(u4, @bitCast(guard.getDirection())) & @as(u4, @bitCast(step.directions))) == @as(u4, @bitCast(guard.getDirection()))) {
+        var step: StepData = hypothetical[guard.pos.row][guard.pos.col];
+        if (step.contains(guard.getDirection())) {
             obstaclePositions[block.row].set(block.col);
-            try drawpath(&hypothetical, steps, block, guard);
-            std.debug.print("x={d}, y={d}\n", .{block.col, block.row});
+            // try drawpath(&hypothetical, steps, block, guard);
             return true;
         }
-        switch (guard.direction) {
-            '^' => step.directions.north = true,
-            '>' => step.directions.east = true,
-            'v' => step.directions.south = true,
-            '<' => step.directions.west = true,
-            else => unreachable,
-        }
+        step.setPresent(guard.getDirection(), true);
         hypothetical[guard.pos.row][guard.pos.col] = step;
 
         if (!mvGuard(&guard, max_rows)) {
@@ -251,10 +231,10 @@ const Guard = struct {
 
     fn getDirection(self: Guard) Directions {
         return switch (self.direction) {
-            '^' => .{ .north = true },
-            '>' => .{ .east = true },
-            'v' => .{ .south = true },
-            '<' => .{ .west = true },
+            '^' => .north,
+            '>' => .east,
+            'v' => .south,
+            '<' => .west,
             else => unreachable,
         };
     }
@@ -272,27 +252,14 @@ fn drawpath(path: *Visited, i: usize, block: ?Coord, guard: Guard) !void {
         @memcpy(v[0..map[x].len], map[x]);
     }
     for (path, 0..) |row, y| {
-        for (row[0..map[y].len], 0..) |value, x| {
+        for (row[0..map[y].len], 0..) |_, x| {
             if (map[y][x] == '^' or map[y][x] == '>' or map[y][x] == 'v' or map[y][x] == '<') {
                 continue;
             }
-            if (value) |v| {
-                const char: u8 = char: {
-                    if ((v.directions.north or v.directions.south) and !v.directions.east and !v.directions.west) {
-                        break :char '|';
-                    }
-                    if ((v.directions.west or v.directions.east) and !v.directions.north and !v.directions.south) {
-                        break :char '-';
-                    }
-                    if ((v.directions.west or v.directions.east) and (v.directions.north or v.directions.south)) {
-                        break :char '+';
-                    }
-                    unreachable;
-                };
-                canvas[y][x] = char;
+            const char: u8 = '.';
+            canvas[y][x] = char;
             }
         }
-    }
     if (block) |blk| {
         canvas[blk.row][blk.col] = 'O';
     }
