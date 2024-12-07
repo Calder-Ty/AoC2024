@@ -25,11 +25,10 @@ const Directions = enum {
 };
 
 const StepData = std.EnumSet(Directions);
-
-
 const VisitedRow = [size]StepData;
 const Visited = [size]VisitedRow;
 var map: [size][]u8 = undefined;
+
 
 const ObstaclePositionsRow = std.bit_set.StaticBitSet(size);
 const ObstaclePositions = [size]ObstaclePositionsRow;
@@ -56,12 +55,13 @@ pub fn main() !void {
     }
 
     // Let's walk (Part 1)
-    _ = walkRoute(guard, row_num, &visited);
+    walkWithObstacles(guard, row_num, &visited);
     var sum: usize = 0;
     for (visited) |row_line| {
         sum += count(row_line);
     }
 
+    
     var loops: usize = 0;
     for (obstaclePositions) |row| {
         loops += row.count();
@@ -96,6 +96,23 @@ fn walkRoute(grd: Guard, max_rows: usize, visited: *Visited) bool {
     return false;
 }
 
+fn walkWithObstacles(grd: Guard, max_rows: usize, visited: *Visited) void {
+    var guard = grd;
+
+    while (guard.pos.col < max_rows and guard.pos.col >= 0 and guard.pos.row < max_rows and guard.pos.row >= 0) {
+        // First check if placing a block will get a loop
+        _ = findLoop(guard, max_rows, visited);
+        var step: StepData = visited[guard.pos.row][guard.pos.col];
+        if (step.contains(guard.getDirection())) break;
+        step.setPresent(guard.getDirection(), true);
+        visited[guard.pos.row][guard.pos.col] = step;
+        if (!mvGuard(&guard, max_rows)) {
+            break;
+        }
+    }
+}
+
+// Moves or turns the guard, If guard were to go out of bounds, will return false
 fn mvGuard(guard: *Guard, max_rows: usize) bool {
     const ret = switch (guard.direction) {
         '^' => ret: {
@@ -132,8 +149,9 @@ fn mvGuard(guard: *Guard, max_rows: usize) bool {
 }
 
 // Counts the number of loops (part2)
-fn findLoop(grd: Guard, max_rows: usize, visited: *Visited) !bool {
+fn findLoop(grd: Guard, max_rows: usize, visited: *Visited) bool {
     var guard: Guard = grd;
+
     // Don't block if the guard is on the edge, or there is already an obstacle
     const block: Coord = switch (guard.direction) {
         '^' => blk: {
@@ -179,28 +197,17 @@ fn findLoop(grd: Guard, max_rows: usize, visited: *Visited) !bool {
     const temp = map[block.row][block.col];
     map[block.row][block.col] = '#';
     defer map[block.row][block.col] = temp;
+
     var hypothetical: Visited = undefined;
     @memcpy(&hypothetical, visited);
     hypothetical[guard.pos.row][guard.pos.col].setPresent(guard.getDirection(), true);
     guard.turn();
 
-    // Redo the walk... But at each step, we need to check for loops!
-    walk: while (guard.pos.col < max_rows and guard.pos.col >= 0 and guard.pos.row < max_rows and guard.pos.row >= 0) {
-        // Have we been here before:
-        var step: StepData = hypothetical[guard.pos.row][guard.pos.col];
-        if (step.contains(guard.getDirection())) {
-            obstaclePositions[block.row].set(block.col);
-            // try drawpath(&hypothetical, steps, block, guard);
-            return true;
-        }
-        step.setPresent(guard.getDirection(), true);
-        hypothetical[guard.pos.row][guard.pos.col] = step;
-
-        if (!mvGuard(&guard, max_rows)) {
-            break :walk;
-        }
-
-    } 
+    // Do the walk...
+    const looped = walkRoute(guard, max_rows, &hypothetical);
+    if (looped) {
+        obstaclePositions[block.row].set(block.col);
+    }
     steps += 1;
     return false;
 }
