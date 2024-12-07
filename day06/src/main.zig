@@ -56,7 +56,7 @@ pub fn main() !void {
     }
 
     // Let's walk (Part 1)
-    _ = try walkRoute(guard, row_num, &visited);
+    _ = walkRoute(guard, row_num, &visited);
     var sum: usize = 0;
     for (visited) |row_line| {
         sum += count(row_line);
@@ -80,25 +80,20 @@ fn count(row: VisitedRow) usize {
     return sum;
 }
 
-fn walkRoute(grd: Guard, max_rows: usize, visited: *Visited) !usize {
+/// Walk route, and check return if loop was found
+fn walkRoute(grd: Guard, max_rows: usize, visited: *Visited) bool {
     var guard = grd;
-    var total_loops: usize = 0;
 
-    // Let's walk
     while (guard.pos.col < max_rows and guard.pos.col >= 0 and guard.pos.row < max_rows and guard.pos.row >= 0) {
-        // Search for loops
-        if (try findLoop(guard, max_rows, visited)) {
-            total_loops += 1;
-        }
-
         var step: StepData = visited[guard.pos.row][guard.pos.col];
+        if (step.contains(guard.getDirection())) return true;
         step.setPresent(guard.getDirection(), true);
         visited[guard.pos.row][guard.pos.col] = step;
         if (!mvGuard(&guard, max_rows)) {
             break;
         }
     }
-    return total_loops;
+    return false;
 }
 
 fn mvGuard(guard: *Guard, max_rows: usize) bool {
