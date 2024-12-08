@@ -1,10 +1,5 @@
 //! https://adventofcode.com/2024/day/6
 //
-// 1999 is too large
-// 1940 ?
-// 1939 ? its wrong
-// 1075 ? it's wrong, but i wanted to see why went wrong
-// 500 is too low
 const std = @import("std");
 const fs = std.fs;
 const fmt = std.fmt;
