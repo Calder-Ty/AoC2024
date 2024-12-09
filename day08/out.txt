@@ -1,0 +1,16 @@
+antinode_a: main.Coord{ .x = 11, .y = 0 }
+antinode_b: main.Coord{ .x = 2, .y = 3 }
+antinode_b: main.Coord{ .x = 6, .y = 5 }
+antinode_b: main.Coord{ .x = 0, .y = 7 }
+antinode_a: main.Coord{ .x = 3, .y = 1 }
+antinode_b: main.Coord{ .x = 9, .y = 4 }
+antinode_a: main.Coord{ .x = 6, .y = 0 }
+antinode_b: main.Coord{ .x = 3, .y = 6 }
+antinode_a: main.Coord{ .x = 10, .y = 2 }
+antinode_b: main.Coord{ .x = 1, .y = 5 }
+antinode_a: main.Coord{ .x = 4, .y = 2 }
+antinode_b: main.Coord{ .x = 10, .y = 11 }
+antinode_a: main.Coord{ .x = 3, .y = 1 }
+antinode_a: main.Coord{ .x = 7, .y = 7 }
+antinode_b: main.Coord{ .x = 10, .y = 10 }
+Found 14
