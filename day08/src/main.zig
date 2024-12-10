@@ -1,6 +1,4 @@
 //! https://adventofcode.com/2024/day/8
-//!
-//! 268 is too low
 const std = @import("std");
 const math = std.math;
 const fs = std.fs;
@@ -82,17 +80,27 @@ fn findAntinodes(stations: []Coord, antinodes: *AntinodeChart) void {
 }
 
 fn computeAntinodes(a: Coord, b: Coord, antinodes: *AntinodeChart) void {
+    // Antennae are always eachothers antinodes
+    antinodes[@intCast(a.y)].set(@intCast(a.x));
+    antinodes[@intCast(b.y)].set(@intCast(b.x));
     const rise = b.y - a.y;
     const run = b.x - a.x;
     // Do A's Antinode first: Since Rise/Run are calculated going _from_ a to
     // _b_ (i.e values point towards b, doing the opposit will lead us away.
-    const anti_a: Coord = .{ .x = a.x - run, .y = a.y - rise };
+    var anti_a: Coord = .{ .x = a.x - run, .y = a.y - rise };
+
+    while (inBounds(anti_a)) {
+        antinodes[@intCast(anti_a.y)].set(@intCast(anti_a.x));
+        anti_a.x -= run;
+        anti_a.y -= rise;
+    }
     // Similarly for b, if we keep going, we will go further from a
-    const anti_b: Coord = .{ .x = b.x + run, .y = b.y + rise };
-
-
-    if (inBounds(anti_a)) antinodes[@intCast(anti_a.y)].set(@intCast(anti_a.x));
-    if (inBounds(anti_b)) antinodes[@intCast(anti_b.y)].set(@intCast(anti_b.x));
+    var anti_b: Coord = .{ .x = b.x + run, .y = b.y + rise };
+    while (inBounds(anti_b)) {
+        antinodes[@intCast(anti_b.y)].set(@intCast(anti_b.x));
+        anti_b.x += run;
+        anti_b.y += rise;
+    }
 }
 
 fn inBounds(coord: Coord) bool {
